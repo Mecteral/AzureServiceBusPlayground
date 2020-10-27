@@ -42,12 +42,11 @@ namespace AzureServiceBus.Core.Client
         private static async Task SendRequest()
         {
             var semaphoreSlim = new SemaphoreSlim(0,1);
+            IBusControl bus = null;
 
             await Task.Factory.StartNew(async () =>
             {
-                // Sending the string does not work for some reason the first time around, but the second time it receives messages
-                // The consumer simply does not receive any messages, maybe restart the consumer?
-                var queueGuid = "CoreCorrelation".ToLower();
+                var queueGuid = Guid.NewGuid().ToString();
                 var models = new List<CorrelationResponseModel>();
                 var correlationConsumer = new CorrelationConsumer(model =>
                 {
@@ -61,7 +60,7 @@ namespace AzureServiceBus.Core.Client
                     }
                 });
 
-                var bus = Bus.Factory.CreateUsingAzureServiceBus(cfg =>
+                bus = Bus.Factory.CreateUsingAzureServiceBus(cfg =>
                 {
                     AzureServiceBusFactory.ConfigureHost(cfg);
 
@@ -75,11 +74,13 @@ namespace AzureServiceBus.Core.Client
 
                 await QueuePublisher.StartCorrelation(queueGuid);
 
-                await bus.StopAsync();
+                // Do not stop bus here, otherwise the consumer does not receive notifications
+                // await bus.StopAsync();
             }).ConfigureAwait(false);
           
             
             await semaphoreSlim.WaitAsync();
+            await bus?.StopAsync();
 
             /*
             var result = await RpcPublisher.SendToCoreRpcQueue(new StringIntRequestModel
