@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AzureServiceBus.Shared.Consumer;
 using AzureServiceBus.Shared.Models;
 using MassTransit;
@@ -8,7 +7,7 @@ namespace AzureServiceBus.Shared
 {
     public class QueuePublisher
     {
-        public static async Task StartCorrelation()
+        public static async Task StartCorrelation(string queueGuid)
         {
             var bus = Bus.Factory.CreateUsingAzureServiceBus(AzureServiceBusFactory.ConfigureHost);
 
@@ -16,18 +15,19 @@ namespace AzureServiceBus.Shared
 
             var sendEndpoint = await bus.GetSendEndpoint(Constants.QueueEndpointUri("CoreCorrelationStart"));
 
-            await sendEndpoint.Send(new CorrelationStartRequest());
+            await sendEndpoint.Send(new CorrelationStartRequest
+            {
+                QueueName = queueGuid
+            });
 
             await bus.StopAsync();
         }
 
-        public static async Task RespondToCorrelation()
+        public static async Task RespondToCorrelation(string messageQueueName)
         {
             var bus = Bus.Factory.CreateUsingAzureServiceBus(AzureServiceBusFactory.ConfigureHost);
 
-            await bus.StartAsync();
-
-            var sendEndpoint = await bus.GetSendEndpoint(Constants.QueueEndpointUri("CoreCorrelation"));
+            var sendEndpoint = await bus.GetSendEndpoint(Constants.QueueEndpointUri(messageQueueName));
 
             const int count = 5;
 
@@ -39,8 +39,6 @@ namespace AzureServiceBus.Shared
                     TotalCount = count
                 });
             }
-
-            await bus.StopAsync();
         }
 
         public static async Task SendToCoreQueue(StringIntRequestModel stringIntRequestModel)

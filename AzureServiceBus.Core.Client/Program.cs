@@ -43,11 +43,11 @@ namespace AzureServiceBus.Core.Client
         {
             var semaphoreSlim = new SemaphoreSlim(0,1);
 
-            var tokenSource = new CancellationTokenSource();
-            tokenSource.CancelAfter(TimeSpan.FromMinutes(30));
-
             await Task.Factory.StartNew(async () =>
             {
+                // Sending the string does not work for some reason the first time around, but the second time it receives messages
+                // The consumer simply does not receive any messages, maybe restart the consumer?
+                var queueGuid = "CoreCorrelation".ToLower();
                 var models = new List<CorrelationResponseModel>();
                 var correlationConsumer = new CorrelationConsumer(model =>
                 {
@@ -65,21 +65,21 @@ namespace AzureServiceBus.Core.Client
                 {
                     AzureServiceBusFactory.ConfigureHost(cfg);
 
-                    cfg.ReceiveEndpoint("CoreCorrelation", configurator =>
+                    cfg.ReceiveEndpoint(queueGuid, configurator =>
                     {
                         configurator.Consumer(() => correlationConsumer);
                     });
                 });
+                
+                await bus.StartAsync();
 
-                await bus.StartAsync(tokenSource.Token);
+                await QueuePublisher.StartCorrelation(queueGuid);
 
-                await QueuePublisher.StartCorrelation();
-
-                await bus.StopAsync(tokenSource.Token);
-            }, tokenSource.Token).ConfigureAwait(false);
+                await bus.StopAsync();
+            }).ConfigureAwait(false);
           
             
-            await semaphoreSlim.WaitAsync(tokenSource.Token);
+            await semaphoreSlim.WaitAsync();
 
             /*
             var result = await RpcPublisher.SendToCoreRpcQueue(new StringIntRequestModel

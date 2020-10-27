@@ -31,43 +31,4 @@ namespace AzureServiceBus.Shared.Consumer
             });
         }
     }
-
-    public class CorrelationConsumer : IConsumer<CorrelationResponseModel>
-    {
-        private readonly Action<CorrelationResponseModel> consumeAction;
-
-        public CorrelationConsumer(Action<CorrelationResponseModel> consumeAction)
-        {
-            this.consumeAction = consumeAction ?? throw new ArgumentNullException(nameof(consumeAction));
-        }
-
-        public Task Consume(ConsumeContext<CorrelationResponseModel> context)
-        {
-            consumeAction(context.Message);
-
-            return Task.CompletedTask;
-        }
-    }
-
-    public class CorrelationStartConsumer : IConsumer<CorrelationStartRequest>
-    {
-        public async Task Consume(ConsumeContext<CorrelationStartRequest> context)
-        {
-            await QueuePublisher.RespondToCorrelation();
-        }
-    }
-
-    public class CorrelationStartRequest
-    {
-
-    }
-
-    public class CorrelationResponseModel
-    {
-        public int TotalCount { get; set; }
-        public int ResponseIndex { get; set; }
-
-        public bool IsLastRequest
-            => TotalCount == ResponseIndex;
-    }
 }

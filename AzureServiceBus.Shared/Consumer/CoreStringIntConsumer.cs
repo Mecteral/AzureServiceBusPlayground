@@ -11,14 +11,4 @@ namespace AzureServiceBus.Shared.Consumer
             => Console.WriteLine(
                 $"Core consumer called, string: {context.Message.StringValue}, int: {context.Message.IntValue}");
     }
-
-    public interface ITest
-    {
-
-    }
-
-    public class Test : ITest
-    {
-
-    }
 }
